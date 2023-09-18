@@ -28,7 +28,7 @@ import time
 import tensorflow as tf
 sns.set()
 
-#GENERAZIONE GRAFO
+#GRAPH
 ox.config(use_cache=True, log_console=True)
 G = ox.graph_from_place('Pinerolo, Italy', simplify=True, network_type='all')
 G = ox.project_graph(G, to_crs=4326)
@@ -38,9 +38,9 @@ G = ox.add_edge_travel_times(G)
 print("Numero di Nodi grafo:", G.number_of_nodes())
 print("Numero di Archi grafo:", G.number_of_edges())
 
-#VISUALIZZAZIONE DEGREE DISTRIBUTION
+#DEGREE DISTRIBUTION
 plt.clf()
-plt.hist(list(dict(G.degree()).values())) #ogni nodo è un oggetto della classe dict, che contiene id del nodo e degree. dalla lista dei diversi degree creata chart
+plt.hist(list(dict(G.degree()).values()))
 plt.title('Degree Distribution', fontsize=15, pad=15)
 plt.ylabel('Numero di nodi', fontsize=11)
 plt.xlabel('Numero di connessioni', fontsize=11)
@@ -49,20 +49,20 @@ plt.show()
 
 #N2V
 #   compute node2vec
-g_emb = n2v(G, dimensions=100) #creazione oggetto Graph Embedding
+g_emb = n2v(G, dimensions=100)
 
 #   explore node2vec
-WINDOW = 1 # massima distanza parola corrente e parola predetta
-MIN_COUNT = 1 # ignora parole con frequenza minore di n
-BATCH_WORDS = 4 # Node2Vec batch words
+WINDOW = 1
+MIN_COUNT = 1
+BATCH_WORDS = 4
 
-mdl = g_emb.fit( #creazione degli embedding dati i parametri
+mdl = g_emb.fit(
     window=WINDOW,
     min_count=MIN_COUNT,
     batch_words=BATCH_WORDS
 )
 
-#PREPARAZIONE LISTA DI ADDESTRAMENTO
+#SET UP THE TRAINING SET
 num_training=1000
 rand_nodes = random.sample(list(G.nodes), num_training*2)
 orig_nodes = rand_nodes[:num_training]
@@ -83,7 +83,7 @@ seed_random=9000
 x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, train_size=0.8, random_state=np.random.seed(seed_random), shuffle=True)
 print(x_train[0])
 
-#ADDESTRAMENTO RETE
+#TRAIN THE NETWORK
 print(tf.config.list_physical_devices('GPU'))
 NN_model = Sequential()
 NN_model.add(Dense(100, kernel_initializer='normal', input_dim = len(x_train[1]), activation='linear')) #input layer
@@ -91,14 +91,14 @@ NN_model.add(Dense(50, kernel_initializer='normal', activation='linear')) #hidde
 NN_model.add(Dense(1, kernel_initializer='normal',activation='linear')) #output layer
 #   Compile the network
 NN_model.compile(loss='mean_absolute_error', optimizer='adam', metrics=['mean_absolute_error']) #configurazione modello
-NN_model.summary() #stampa informazioni sul modello
+NN_model.summary()
 x_train=np.array(x_train)
 y_train=np.array(y_train)
 x_test=np.array(x_test)
 y_test=np.array(y_test)
 NN_model.fit(x_train, y_train, epochs=10, batch_size=8, validation_split = 0.2)
 predictions = NN_model.predict(x_test)
-#   stampa risultati
+#RESULTS
 print('PREDICTIONS: (', len(predictions), ')')
 for i in range(0,len(predictions)):
     print(predictions[i], ' ==> ', y_test[i], ' || ', abs(predictions[i]-y_test[i]))
